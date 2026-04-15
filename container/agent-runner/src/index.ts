@@ -407,7 +407,9 @@ async function runQuery(
         'TeamCreate', 'TeamDelete', 'SendMessage',
         'TodoWrite', 'ToolSearch', 'Skill',
         'NotebookEdit',
-        'mcp__nanoclaw__*'
+        'mcp__nanoclaw__*',
+        'mcp__gcal__*',
+        'mcp__sheets__*'
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -423,6 +425,29 @@ async function runQuery(
             NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
           },
         },
+        ...(fs.existsSync('/workspace/gcal-mcp/gcp-oauth.keys.json') ? {
+          gcal: {
+            command: 'google-calendar-mcp',
+            args: [],
+            env: {
+              GOOGLE_OAUTH_CREDENTIALS: '/workspace/gcal-mcp/gcp-oauth.keys.json',
+              GOOGLE_CALENDAR_MCP_TOKEN_PATH: '/workspace/gcal-mcp/credentials.json',
+            },
+          },
+        } : {}),
+        ...(fs.existsSync('/workspace/sheets-mcp/gcp-oauth.keys.json') ? {
+          sheets: {
+            command: 'google-sheets-mcp',
+            args: [],
+            env: {
+              GOOGLE_OAUTH_CREDENTIALS: '/workspace/sheets-mcp/gcp-oauth.keys.json',
+              GOOGLE_OAUTH_TOKENS: '/workspace/sheets-mcp/tokens.json',
+              ...(fs.existsSync('/workspace/sheets-mcp/google-mcp-config.json') ? {
+                GOOGLE_MCP_CONFIG: '/workspace/sheets-mcp/google-mcp-config.json',
+              } : {}),
+            },
+          },
+        } : {}),
       },
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],

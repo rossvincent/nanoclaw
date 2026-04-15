@@ -96,17 +96,14 @@ describe('TelegramChannel', () => {
 
       fetchSpy
         .mockResolvedValueOnce(getMeResponse()) // getMe
-        .mockReturnValueOnce(
-          new Promise(() => {}),
-        ) // first poll hangs
+        .mockReturnValueOnce(new Promise(() => {})) // first poll hangs
         .mockResolvedValueOnce(sendResponse); // sendMessage
 
       await channel.connect();
       await channel.sendMessage('tg:12345', 'Hello!');
 
-      const sendCall = fetchSpy.mock.calls.find(
-        (c: [string, ...unknown[]]) =>
-          (c[0] as string).includes('/sendMessage'),
+      const sendCall = fetchSpy.mock.calls.find((c: [string, ...unknown[]]) =>
+        (c[0] as string).includes('/sendMessage'),
       );
       expect(sendCall).toBeDefined();
       const body = JSON.parse((sendCall![1] as RequestInit).body as string);

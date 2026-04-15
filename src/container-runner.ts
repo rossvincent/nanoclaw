@@ -27,6 +27,7 @@ import {
 } from './container-runtime.js';
 import { detectAuthMode } from './credential-proxy.js';
 import { validateAdditionalMounts } from './mount-security.js';
+import { readEnvFile } from './env.js';
 import { RegisteredGroup } from './types.js';
 
 // Sentinel markers for robust output parsing (must match agent-runner)
@@ -199,6 +200,26 @@ function buildVolumeMounts(
     readonly: false,
   });
 
+  // Google Calendar MCP credentials (read-only)
+  const gcalMcpDir = path.join(process.env.HOME || '/root', '.calendar-mcp');
+  if (fs.existsSync(gcalMcpDir)) {
+    mounts.push({
+      hostPath: gcalMcpDir,
+      containerPath: '/workspace/gcal-mcp',
+      readonly: true,
+    });
+  }
+
+  // Google Sheets MCP credentials (read-only)
+  const sheetsMcpDir = path.join(process.env.HOME || '/root', '.sheets-mcp');
+  if (fs.existsSync(sheetsMcpDir)) {
+    mounts.push({
+      hostPath: sheetsMcpDir,
+      containerPath: '/workspace/sheets-mcp',
+      readonly: true,
+    });
+  }
+
   // Additional mounts validated against external allowlist (tamper-proof from containers)
   if (group.containerConfig?.additionalMounts) {
     const validatedMounts = validateAdditionalMounts(
@@ -236,6 +257,18 @@ function buildContainerArgs(
     args.push('-e', 'ANTHROPIC_API_KEY=placeholder');
   } else {
     args.push('-e', 'CLAUDE_CODE_OAUTH_TOKEN=placeholder');
+  }
+
+  // Pass ClickSend SMS credentials to container (for appointment reminders)
+  const clicksendCreds = readEnvFile([
+    'CLICKSEND_USERNAME',
+    'CLICKSEND_API_KEY',
+  ]);
+  if (clicksendCreds.CLICKSEND_USERNAME) {
+    args.push('-e', `CLICKSEND_USERNAME=${clicksendCreds.CLICKSEND_USERNAME}`);
+  }
+  if (clicksendCreds.CLICKSEND_API_KEY) {
+    args.push('-e', `CLICKSEND_API_KEY=${clicksendCreds.CLICKSEND_API_KEY}`);
   }
 
   // Runtime-specific args for host gateway resolution
@@ -507,11 +540,7 @@ export async function runContainerAgent(
         // Full input is only included at verbose level to avoid
         // persisting user conversation content on every non-zero exit.
         if (isVerbose) {
-          logLines.push(
-            `=== Input ===`,
-            JSON.stringify(input, null, 2),
-            ``,
-          );
+          logLines.push(`=== Input ===`, JSON.stringify(input, null, 2), ``);
         } else {
           logLines.push(
             `=== Input Summary ===`,

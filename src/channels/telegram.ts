@@ -167,8 +167,7 @@ export class TelegramChannel implements Channel {
     if (!msg.text) return;
 
     const jid = chatJid(msg.chat.id);
-    const isGroup =
-      msg.chat.type === 'group' || msg.chat.type === 'supergroup';
+    const isGroup = msg.chat.type === 'group' || msg.chat.type === 'supergroup';
     const chatName =
       msg.chat.title ||
       [msg.chat.first_name, msg.chat.last_name].filter(Boolean).join(' ') ||
